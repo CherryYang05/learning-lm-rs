@@ -71,25 +71,67 @@ pub fn masked_softmax(y: &mut Tensor<f32>) {
 }
 
 pub fn rms_norm(y: &mut Tensor<f32>, x: &Tensor<f32>, w: &Tensor<f32>, epsilon: f32) {
-    todo!("实现 rms_norm，计算前做一些必要的检查会帮助你后续调试")
+
+    let len = y.shape()[1];
+    let tensor_nums = y.shape()[0];
+
+    let _y = unsafe { y.data_mut() };
+    let _x = x.data();
+    let _w = w.data();
+
+    for i in 0..tensor_nums {
+        let mut squre_sum = 0.0;
+        for j in 0..len {
+            squre_sum += _x[i * len + j] * _x[i * len + j];
+        }
+        let rms = (squre_sum / len as f32).sqrt();
+        for j in 0..len {
+            _y[i * len + j] = _x[i * len + j] / (rms + epsilon) * _w[j];
+        }
+    }
+
+    // todo!("实现 rms_norm，计算前做一些必要的检查会帮助你后续调试")
 }
 
 // y = silu(x) * y
 // hint: this is an element-wise operation
 pub fn swiglu(y: &mut Tensor<f32>, x: &Tensor<f32>) {
-    // let len = y.size();
-    // assert!(len == x.size());
+    let len = y.size();
+    assert!(len == x.size());
 
-    // let _y = unsafe { y.data_mut() };
-    // let _x = x.data();
+    let _y = unsafe { y.data_mut() };
+    let _x = x.data();
 
-    todo!("实现 silu，这里给了一些前期准备工作的提示，你可以参考")
+    for i in 0..len {
+        let sigmoid_x = 1.0 / (1.0 + (-_x[i]).exp());
+        let silu_x = sigmoid_x * _x[i];
+        _y[i] = silu_x * _y[i];
+    }
+    
+    // todo!("实现 silu，这里给了一些前期准备工作的提示，你可以参考")
 }
 
 // C = beta * C + alpha * A @ B^T
 // hint: You don't need to do an explicit transpose of B
 pub fn matmul_transb(c: &mut Tensor<f32>, beta: f32, a: &Tensor<f32>, b: &Tensor<f32>, alpha: f32) {
-    todo!("实现 matmul_transb，计算前做一些必要的检查会帮助你后续调试");
+
+    let len = a.shape()[1];
+    let shape = vec![c.shape()[0], c.shape()[1]];
+    let mut c_res = unsafe { c.data_mut() };
+
+    let row = a.shape()[0];
+
+    let mut cnt = 0;
+    for i in 0..shape[0] {
+        let a_row = &a.data()[i * len..(i + 1) * len];
+        for j in 0..shape[1] {
+            let b_col = &b.data()[j * len..(j + 1) * len];
+            c_res[cnt] = alpha * a_row.iter().zip(b_col).map(|(a, b)| a * b).sum::<f32>() + beta * c_res[cnt];
+            cnt += 1;
+        }
+    }
+
+    // todo!("实现 matmul_transb，计算前做一些必要的检查会帮助你后续调试");
 }
 
 // Dot product of two tensors (treated as vectors)
